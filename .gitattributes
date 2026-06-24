@@ -1,1 +1,8 @@
 * text=auto eol=lf
+
+# Binary files — never touch these
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary

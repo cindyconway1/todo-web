@@ -39,3 +39,4 @@ The `@` import alias maps to `src/` (configured in [vite.config.ts](vite.config.
 - **Linting is two-pass**: `oxlint` (correctness category, see [.oxlintrc.json](.oxlintrc.json)) runs first, then ESLint (flat config in [eslint.config.ts](eslint.config.ts), which also disables rules oxlint already covers). Prettier handles formatting and is kept out of lint via `eslint-config-prettier`.
 - **Line endings**: enforced LF via `.gitattributes` (`* text=auto eol=lf`).
 - **Tests** live in `src/**/__tests__/`, use `@vue/test-utils` `mount`, and run under jsdom.
+- **Mock the API, never hit a live backend in tests.** Stub `api` calls (e.g. mock `@/api/client`) and type the mocked requests/responses against the generated `src/api/schema.d.ts` types — they are the source of truth, so don't hand-write ad-hoc response shapes. Tests must run offline; never call `VITE_API_URL` or a real server.

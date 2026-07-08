@@ -39,5 +39,9 @@ jobs:
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
+          # Allow PR updates pushed by the @claude coding bot to still be reviewed.
+          # Without this, the action's non-human-actor guard fails the job when
+          # claude[bot]'s push synchronizes the PR. Use '*' to allow all bots.
+          allowed_bots: 'claude'
+          # See https://github.com/anthropics/claude-code.git action docs:
+          # https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md

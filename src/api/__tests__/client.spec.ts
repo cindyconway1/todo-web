@@ -13,7 +13,7 @@ describe('api client', () => {
   let fetchMock: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    fetchMock = vi.fn()
+    fetchMock = vi.fn<typeof fetch>()
     vi.stubGlobal('fetch', fetchMock)
     setXsrfCookie(null)
     setUnauthorizedHandler(null)
@@ -70,7 +70,7 @@ describe('api client', () => {
   })
 
   it('triggers the unauthorized handler on a 401 from a protected endpoint', async () => {
-    const onUnauthorized = vi.fn()
+    const onUnauthorized = vi.fn<() => void>()
     setUnauthorizedHandler(onUnauthorized)
     fetchMock.mockResolvedValue(new Response(null, { status: 401 }))
 
@@ -80,7 +80,7 @@ describe('api client', () => {
   })
 
   it('does not trigger the unauthorized handler on a 401 from the startup me check', async () => {
-    const onUnauthorized = vi.fn()
+    const onUnauthorized = vi.fn<() => void>()
     setUnauthorizedHandler(onUnauthorized)
     fetchMock.mockResolvedValue(new Response(null, { status: 401 }))
 

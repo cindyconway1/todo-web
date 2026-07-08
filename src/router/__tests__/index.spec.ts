@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/stores/auth', () => ({
-  useAuthStore: vi.fn(),
+  useAuthStore: vi.fn<() => unknown>(),
 }))
 
 import { useAuthStore } from '@/stores/auth'
@@ -11,10 +11,10 @@ function mockAuthStore(isAuthenticated: boolean): void {
   vi.mocked(useAuthStore).mockReturnValue({
     user: null,
     isAuthenticated,
-    fetchMe: vi.fn().mockResolvedValue(undefined),
-    login: vi.fn(),
-    logout: vi.fn(),
-    register: vi.fn(),
+    fetchMe: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    login: vi.fn<() => void>(),
+    logout: vi.fn<() => void>(),
+    register: vi.fn<() => void>(),
   } as unknown as ReturnType<typeof useAuthStore>)
 }
 

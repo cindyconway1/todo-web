@@ -24,10 +24,16 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): voi
 // not a validation error - re-fetch the token and retry the same request exactly once.
 const pendingRequestClones = new WeakMap<Request, Request>()
 
-// Relative baseUrl so requests resolve same-origin through the Vite dev proxy (see vite.config.ts)
+// Same-origin baseUrl so requests resolve through the Vite dev proxy (see vite.config.ts)
 // instead of cross-origin to VITE_API_URL - cross-origin calls make the browser drop the auth
-// cookie silently. VITE_API_URL is only used as the proxy target now.
-export const api = createClient<paths>({ baseUrl: '', credentials: 'include' })
+// cookie silently. VITE_API_URL is only used as the proxy target now. window.location.origin
+// (not '') because the Request constructor needs an absolute URL outside real browsers (jsdom).
+// fetch is resolved at call time (not captured at createClient) so tests can stub the global.
+export const api = createClient<paths>({
+  baseUrl: window.location.origin,
+  credentials: 'include',
+  fetch: (request) => globalThis.fetch(request),
+})
 
 api.use({
   async onRequest({ request }) {

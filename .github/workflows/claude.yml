@@ -43,8 +43,12 @@ jobs:
           # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
           # prompt: 'Update the pull request description to include a summary of changes.'
 
-          # Optional: Add claude_args to customize behavior and configuration
+          # Pin the coding model to Fable 5 and grant the npm commands the agent needs
+          # to install deps + run lint / test:unit / build. --allowedTools is ADDITIVE:
+          # the base git/GitHub tools are always included, so we don't re-list them here.
+          # (The .claude/settings.json permissions are NOT honored by the action's gate.)
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
-          # claude_args: '--allowed-tools Bash(gh pr *)'
+          claude_args: |
+            --model claude-fable-5
+            --allowedTools "Bash(npm:*),Bash(npx:*)"
 

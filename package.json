@@ -18,8 +18,11 @@
     "gen:api": "openapi-typescript ../todo-agentic-poc/ToDo.Api.json -o src/api/schema.d.ts"
   },
   "dependencies": {
+    "@lucide/vue": "^1.23.0",
+    "@tailwindcss/vite": "^4.3.2",
     "openapi-fetch": "^0.17.0",
     "pinia": "^3.0.4",
+    "tailwindcss": "^4.3.2",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0"
   },

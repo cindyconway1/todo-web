@@ -40,3 +40,17 @@ The `@` import alias maps to `src/` (configured in [vite.config.ts](vite.config.
 - **Line endings**: enforced LF via `.gitattributes` (`* text=auto eol=lf`).
 - **Tests** live in `src/**/__tests__/`, use `@vue/test-utils` `mount`, and run under jsdom.
 - **Mock the API, never hit a live backend in tests.** Stub `api` calls (e.g. mock `@/api/client`) and type the mocked requests/responses against the generated `src/api/schema.d.ts` types — they are the source of truth, so don't hand-write ad-hoc response shapes. Tests must run offline; never call `VITE_API_URL` or a real server.
+
+## Design system
+
+**Any task that affects look and feel MUST follow [docs/design-system.md](docs/design-system.md).** The aesthetic is GitHub dark-mode (Primer-inspired) with purple accents, built on **Tailwind CSS v4** (configured in CSS — no `tailwind.config.js`). Icons come from **`@lucide/vue`**.
+
+Color tokens are defined once in [src/assets/main.css](src/assets/main.css) and exposed as **semantic Tailwind utilities** — use them, **never hardcode hex values** (that also keeps a future light theme swappable):
+
+- Backgrounds: `bg-canvas` (page), `bg-card` (panels)
+- Borders: `border-subtle` (1px borders instead of shadows — never harsh black)
+- Text: `text-default` (primary), `text-muted` (secondary)
+- Accent (use sparingly — buttons, active/focus, icons): `bg-accent` / `text-accent` / `ring-accent`, hover `bg-accent-hover`
+- Completed/success: `text-success` / `bg-success`; errors/destructive: `text-danger` / `border-danger`
+
+Cards use `rounded-md` + `border border-subtle`; inputs get a purple focus ring (`focus:ring-2 focus:ring-accent`); buttons animate color on hover (`transition-colors duration-150`); interactive icons get purposeful `transition-transform duration-150` — no gratuitous motion. See the doc for full component patterns.

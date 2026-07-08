@@ -1,0 +1,52 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens — the single source of truth for the app's look & feel.
+ * See docs/design-system.md for the rules that govern how these are used.
+ *
+ * Structure (light-ready):
+ *   :root                → raw color values for the DEFAULT (dark) theme
+ *   [data-theme='light'] → override the same variables for a future light theme
+ *   @theme inline        → maps raw variables to semantic Tailwind utilities
+ *
+ * `@theme inline` keeps the var() reference in the generated utilities instead of
+ * resolving it at build time, so swapping the raw values at runtime re-themes the
+ * whole app. To add light mode later, fill in the [data-theme='light'] block and
+ * set `data-theme="light"` on <html>.
+ */
+
+:root {
+  --canvas: #0d1117; /* page background */
+  --card: #161b22; /* card / panel background */
+  --subtle: #30363d; /* borders — low-contrast, never harsh black */
+  --fg-default: #c9d1d9; /* primary text */
+  --fg-muted: #8b949e; /* secondary / muted text */
+  --accent: #8957e5; /* purple — primary actions, active & focus states */
+  --accent-hover: #9e6ffc; /* purple hover */
+  --success: #3fb950; /* green — completed todos */
+  --danger: #f85149; /* red — errors / destructive states */
+}
+
+/* Placeholder for a future light theme; values are intentionally unset for now. */
+[data-theme='light'] {
+  /* --canvas: #ffffff; --card: #f6f8fa; ... */
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-card: var(--card);
+  --color-subtle: var(--subtle);
+  --color-default: var(--fg-default);
+  --color-muted: var(--fg-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+}
+
+/* App-wide baseline: dark canvas + primary text so unstyled areas still read correctly. */
+html {
+  background-color: var(--canvas);
+  color: var(--fg-default);
+  color-scheme: dark;
+}

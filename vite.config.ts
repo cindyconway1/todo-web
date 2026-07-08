@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
+import tailwindcss from '@tailwindcss/vite'
 
 // Auth/antiforgery cookies are HttpOnly; Secure; SameSite=Strict in every environment (see
 // docs/spec.md §5), so dev must be same-origin: serve over HTTPS and proxy /api to the backend.
@@ -16,7 +17,9 @@ const hasDevCertificate = existsSync(keyFile) && existsSync(certFile)
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), vueDevTools()],
+  // The @tailwindcss/vite plugin isn't needed to run jsdom unit tests and doesn't
+  // initialize under Vitest's environment, so skip it there (Vitest sets VITEST=true).
+  plugins: [vue(), vueDevTools(), ...(process.env.VITEST ? [] : [tailwindcss()])],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

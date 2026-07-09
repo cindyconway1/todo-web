@@ -71,6 +71,21 @@ describe('LoginView', () => {
     expect(wrapper.text()).not.toContain('no such user')
   })
 
+  it('toggles password visibility when the show/hide icon is clicked', async () => {
+    const { wrapper } = await mountLoginView()
+
+    const password = wrapper.find('#login-password')
+    const toggle = wrapper.get('button[aria-label="Show password"]')
+    expect(password.attributes('type')).toBe('password')
+
+    await toggle.trigger('click')
+    expect(password.attributes('type')).toBe('text')
+    expect(wrapper.find('button[aria-label="Hide password"]').exists()).toBe(true)
+
+    await wrapper.get('button[aria-label="Hide password"]').trigger('click')
+    expect(password.attributes('type')).toBe('password')
+  })
+
   it('navigates to the Dashboard on a successful login', async () => {
     mockPost.mockResolvedValueOnce({ data: undefined, error: undefined, response: response(204) })
     const { wrapper, router } = await mountLoginView()

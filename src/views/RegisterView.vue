@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Eye, EyeOff, UserPlus } from '@lucide/vue'
 
 import { AuthError, useAuthStore } from '@/stores/auth'
 import { validateEmail, validatePassword } from '@/utils/authValidation'
@@ -12,6 +13,7 @@ const form = reactive({ email: '', password: '' })
 const fieldErrors = reactive<{ email?: string; password?: string }>({})
 const formError = ref('')
 const submitting = ref(false)
+const showPassword = ref(false)
 
 function validate(): boolean {
   fieldErrors.email = validateEmail(form.email) ?? undefined
@@ -44,26 +46,79 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <form novalidate @submit.prevent="onSubmit">
-    <h1>Register</h1>
-    <p v-if="formError" role="alert">{{ formError }}</p>
+  <div class="flex min-h-screen items-center justify-center bg-canvas px-4 py-12">
+    <form
+      novalidate
+      class="w-full max-w-sm space-y-6 rounded-md border border-subtle bg-card p-8"
+      @submit.prevent="onSubmit"
+    >
+      <h1 class="text-2xl font-semibold text-default">Register</h1>
 
-    <label for="register-email">Email</label>
-    <input id="register-email" v-model="form.email" type="email" autocomplete="username" />
-    <p v-if="fieldErrors.email">{{ fieldErrors.email }}</p>
+      <p
+        v-if="formError"
+        role="alert"
+        class="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger"
+      >
+        {{ formError }}
+      </p>
 
-    <label for="register-password">Password</label>
-    <input
-      id="register-password"
-      v-model="form.password"
-      type="password"
-      autocomplete="new-password"
-    />
-    <p v-if="fieldErrors.password">{{ fieldErrors.password }}</p>
+      <div class="space-y-1.5">
+        <label for="register-email" class="block text-sm font-medium text-default">Email</label>
+        <input
+          id="register-email"
+          v-model="form.email"
+          type="email"
+          autocomplete="username"
+          class="w-full rounded-md border bg-canvas px-3 py-2 text-default placeholder:text-muted transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent"
+          :class="fieldErrors.email ? 'border-danger' : 'border-subtle'"
+        />
+        <p v-if="fieldErrors.email" class="text-sm text-danger">{{ fieldErrors.email }}</p>
+      </div>
 
-    <button type="submit" :disabled="submitting">Register</button>
-    <RouterLink to="/login">Already have an account? Log in</RouterLink>
-  </form>
+      <div class="space-y-1.5">
+        <label for="register-password" class="block text-sm font-medium text-default"
+          >Password</label
+        >
+        <div class="relative">
+          <input
+            id="register-password"
+            v-model="form.password"
+            :type="showPassword ? 'text' : 'password'"
+            autocomplete="new-password"
+            class="w-full rounded-md border bg-canvas py-2 pl-3 pr-10 text-default placeholder:text-muted transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent"
+            :class="fieldErrors.password ? 'border-danger' : 'border-subtle'"
+          />
+          <button
+            type="button"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            :aria-pressed="showPassword"
+            class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted transition-colors duration-150 hover:text-accent focus:outline-none focus:text-accent"
+            @click="showPassword = !showPassword"
+          >
+            <EyeOff v-if="showPassword" class="size-4" aria-hidden="true" />
+            <Eye v-else class="size-4" aria-hidden="true" />
+          </button>
+        </div>
+        <p v-if="fieldErrors.password" class="text-sm text-danger">{{ fieldErrors.password }}</p>
+      </div>
+
+      <button
+        type="submit"
+        :disabled="submitting"
+        class="flex w-full items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 font-medium text-white transition-colors duration-150 hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-card disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <UserPlus class="size-4" aria-hidden="true" />
+        {{ submitting ? 'Creating account…' : 'Register' }}
+      </button>
+
+      <RouterLink
+        to="/login"
+        class="block text-center text-sm text-muted transition-colors duration-150 hover:text-accent"
+      >
+        Already have an account? Log in
+      </RouterLink>
+    </form>
+  </div>
 </template>
 
 <style scoped></style>

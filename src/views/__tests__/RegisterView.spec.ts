@@ -98,6 +98,19 @@ describe('RegisterView', () => {
     expect(wrapper.text()).toContain('Email format is invalid.')
   })
 
+  it('toggles password visibility when the show/hide icon is clicked', async () => {
+    const { wrapper } = await mountRegisterView()
+
+    const password = wrapper.find('#register-password')
+    expect(password.attributes('type')).toBe('password')
+
+    await wrapper.get('button[aria-label="Show password"]').trigger('click')
+    expect(password.attributes('type')).toBe('text')
+
+    await wrapper.get('button[aria-label="Hide password"]').trigger('click')
+    expect(password.attributes('type')).toBe('password')
+  })
+
   it('navigates to /login on a successful registration', async () => {
     mockPost.mockResolvedValueOnce({
       data: { id: 'u1', email: 'a@example.com' },

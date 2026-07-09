@@ -10,6 +10,28 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
       - run: npm ci
+
+      # Download the backend's published OpenAPI contract from its Release, then
+      # regenerate the typed client so the build type-checks against the latest
+      # contract. The spec is published by todo-agentic-poc's CI to the release
+      # tagged `api-schema-latest`.
+      #   --repo  : the release lives in the backend repo, not this one.
+      #   GH_TOKEN: gh requires it in Actions. GITHUB_TOKEN works while
+      #             todo-agentic-poc is public; when it goes private, swap this
+      #             for a GitHub App installation token (or PAT) that can read it.
+      #   -D      : lands the file where `npm run gen:api` reads it
+      #             (../todo-agentic-poc/ToDo.Api.json).
+      - name: Download OpenAPI schema and regenerate client
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p ../todo-agentic-poc
+          gh release download api-schema-latest \
+            --repo cindyconway1/todo-agentic-poc \
+            -p ToDo.Api.json --clobber \
+            -D ../todo-agentic-poc
+          npm run gen:api
+
       - run: npm run lint
-      - run: npm run test:unit   # Vitest, API calls mocked
+      - run: npm run test:unit # Vitest, API calls mocked
       - run: npm run build

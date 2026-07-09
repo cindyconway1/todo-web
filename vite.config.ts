@@ -17,8 +17,6 @@ const hasDevCertificate = existsSync(keyFile) && existsSync(certFile)
 
 // https://vite.dev/config/
 export default defineConfig({
-  // The @tailwindcss/vite plugin isn't needed to run jsdom unit tests and doesn't
-  // initialize under Vitest's environment, so skip it there (Vitest sets VITEST=true).
   plugins: [vue(), vueDevTools(), ...(process.env.VITEST ? [] : [tailwindcss()])],
   resolve: {
     alias: {

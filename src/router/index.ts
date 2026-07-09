@@ -25,6 +25,24 @@ const router = createRouter({
       component: () => import('@/views/DashboardView.vue'),
       props: true,
     },
+    {
+      path: '/leagues',
+      name: 'Leagues',
+      component: () => import('@/views/LeaguesView.vue'),
+      props: true,
+    },
+    {
+      path: '/teams',
+      name: 'Teams',
+      component: () => import('@/views/TeamsView.vue'),
+      props: true,
+    },
+    {
+      path: '/volunteers',
+      name: 'Volunteers',
+      component: () => import('@/views/VolunteersView.vue'),
+      props: true,
+    },
   ],
 })
 

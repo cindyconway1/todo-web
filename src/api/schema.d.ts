@@ -288,6 +288,54 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/api/dashboard': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: {
+      parameters: {
+        query?: never
+        header?: never
+        path?: never
+        cookie?: never
+      }
+      requestBody?: never
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'text/plain': components['schemas']['DashboardDto']
+            'application/json': components['schemas']['DashboardDto']
+            'text/json': components['schemas']['DashboardDto']
+          }
+        }
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown
+          }
+          content: {
+            'text/plain': components['schemas']['ProblemDetails']
+            'application/json': components['schemas']['ProblemDetails']
+            'text/json': components['schemas']['ProblemDetails']
+          }
+        }
+      }
+    }
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/api/leagues': {
     parameters: {
       query?: never
@@ -1111,6 +1159,23 @@ export interface components {
       leagueId?: null | string
       teamIds?: null | string[]
     }
+    DashboardDto: {
+      leagues?: components['schemas']['GroupDto'][]
+      teams?: components['schemas']['GroupDto'][]
+      people?: components['schemas']['GroupDto'][]
+    }
+    DashboardListDto: {
+      /** Format: uuid */
+      listId?: string
+      listName?: string
+      items?: components['schemas']['TodoItemDto'][]
+    }
+    GroupDto: {
+      /** Format: uuid */
+      entityId?: string
+      entityName?: string
+      lists?: components['schemas']['DashboardListDto'][]
+    }
     LeagueDto: {
       /** Format: uuid */
       id?: string
@@ -1141,6 +1206,19 @@ export interface components {
       name?: string
       /** Format: uuid */
       leagueId?: null | string
+    }
+    TodoItemDto: {
+      /** Format: uuid */
+      id?: string
+      /** Format: uuid */
+      listId?: string
+      title?: string
+      description?: null | string
+      /** Format: date-time */
+      dueDate?: null | string
+      isCompleted?: boolean
+      /** Format: date-time */
+      completedAt?: null | string
     }
     UpdateLeagueRequest: {
       name?: null | string

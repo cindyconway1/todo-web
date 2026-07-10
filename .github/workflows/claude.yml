@@ -10,6 +10,16 @@ on:
   pull_request_review:
     types: [submitted]
 
+# Serialize @claude runs per PR/issue so overlapping runs don't push at the
+# same time and clobber each other's commits (what caused the conflicts this
+# branch exists to fix). A new run queues behind the in-progress one instead
+# of cancelling it mid-work. Keyed on the PR/issue number, which is a stable
+# proxy for the branch being worked on; the run_id fallback keeps unrelated
+# runs from ever sharing a group.
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   claude:
     if: |
@@ -84,8 +94,15 @@ jobs:
           # to install deps + run lint / test:unit / build. --allowedTools is ADDITIVE:
           # the base git/GitHub tools are always included, so we don't re-list them here.
           # (The .claude/settings.json permissions are NOT honored by the action's gate.)
+          #
+          # Conflict self-healing: grant `git fetch` (+ the reset/rebase it feeds) but
+          # DISALLOW `git pull`/`git merge`, so the agent reconciles a diverged branch
+          # explicitly (fetch, then rebase onto — or reset --hard to — origin) instead
+          # of an open-ended merge that can silently entangle another run's commits.
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           claude_args: |
             --model claude-fable-5
-            --allowedTools "Bash(npm:*),Bash(npx:*)"
+            --allowedTools "Bash(npm:*),Bash(npx:*),Bash(git fetch:*),Bash(git reset:*),Bash(git rebase:*)"
+            --disallowedTools "Bash(git pull:*),Bash(git merge:*)"
+            --append-system-prompt "When a push is rejected because your branch has diverged from its remote (e.g. another @claude run pushed in the meantime), reconcile explicitly — never with `git pull` or `git merge`. Run `git fetch origin`, then `git rebase origin/<current-branch>` to replay your commits on top of the latest remote (resolve conflicts, then `git rebase --continue`). Use `git reset --hard origin/<current-branch>` only when you deliberately intend to discard local commits and let the remote win. Substitute the branch you are working on for <current-branch>."
 

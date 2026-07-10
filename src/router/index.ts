@@ -43,6 +43,12 @@ const router = createRouter({
       component: () => import('@/views/VolunteersView.vue'),
       props: true,
     },
+    {
+      path: '/all-items',
+      name: 'AllItems',
+      component: () => import('@/views/AllItemsView.vue'),
+      props: true,
+    },
   ],
 })
 

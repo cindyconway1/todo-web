@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { ArrowLeft, Pencil, Plus, Trash2, Trophy, X } from '@lucide/vue'
+import { ArrowLeft, ListTodo, Pencil, Plus, Trash2, Trophy, X } from '@lucide/vue'
 
 import { EntityError } from '@/stores/entityError'
 import { useLeagueStore } from '@/stores/league'
@@ -252,6 +252,14 @@ async function onDelete(id: string | undefined): Promise<void> {
           <div v-else class="flex items-center justify-between gap-4">
             <span class="font-medium text-default">{{ league.name }}</span>
             <div class="flex items-center gap-2">
+              <RouterLink
+                :to="`/lists/league/${league.id}`"
+                :aria-label="`View to-dos for ${league.name}`"
+                class="flex items-center gap-1.5 rounded-md p-1.5 text-sm text-muted transition-colors duration-150 hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <ListTodo class="size-4" aria-hidden="true" />
+                View to-dos
+              </RouterLink>
               <button
                 type="button"
                 :aria-label="`Edit ${league.name}`"

@@ -43,6 +43,12 @@ const router = createRouter({
       component: () => import('@/views/VolunteersView.vue'),
       props: true,
     },
+    {
+      path: '/lists/:scopeType/:scopeEntityId',
+      name: 'ListDetail',
+      component: () => import('@/views/ListDetailView.vue'),
+      props: true,
+    },
   ],
 })
 

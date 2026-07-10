@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { ArrowLeft, Pencil, Plus, Trash2, Users, X } from '@lucide/vue'
+import { ArrowLeft, ListTodo, Pencil, Plus, Trash2, Users, X } from '@lucide/vue'
 
 import TagPicker from '@/components/TagPicker.vue'
 import type { TagOption } from '@/components/TagPicker.vue'
@@ -311,6 +311,14 @@ async function onDelete(id: string | undefined): Promise<void> {
               </span>
             </div>
             <div class="flex items-center gap-2">
+              <RouterLink
+                :to="`/lists/team/${team.id}`"
+                :aria-label="`View to-dos for ${team.name}`"
+                class="flex items-center gap-1.5 rounded-md p-1.5 text-sm text-muted transition-colors duration-150 hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <ListTodo class="size-4" aria-hidden="true" />
+                View to-dos
+              </RouterLink>
               <button
                 type="button"
                 :aria-label="`Edit ${team.name}`"

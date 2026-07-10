@@ -1,0 +1,35 @@
+name: Regenerate API client
+description: >-
+  Set up Node, install deps, download the backend's published OpenAPI contract,
+  and regenerate the typed client (src/api/schema.d.ts) via `npm run gen:api`.
+  Shared by ci.yml and claude.yml so the fetch logic lives in exactly one place.
+
+# The spec is published by todo-agentic-poc's CI to the release tagged
+# `api-schema-latest`. We download it, land it where `npm run gen:api` reads it
+# (../todo-agentic-poc/ToDo.Api.json), then regenerate the client so downstream
+# steps type-check against the latest contract.
+#   --repo   : the release lives in the backend repo, not this one.
+#   GH_TOKEN : gh requires it in Actions. github.token (GITHUB_TOKEN) works while
+#              todo-agentic-poc is public; when it goes private, swap this for a
+#              GitHub App installation token (or PAT) that can read it.
+#   -D       : lands the file next to this repo, where gen:api expects it.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+    - name: Download OpenAPI schema and regenerate client
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        mkdir -p ../todo-agentic-poc
+        gh release download api-schema-latest \
+          --repo cindyconway1/todo-agentic-poc \
+          -p ToDo.Api.json --clobber \
+          -D ../todo-agentic-poc
+        npm run gen:api

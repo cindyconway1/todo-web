@@ -6,10 +6,18 @@ import type { ItemEditorPayload } from '@/components/ItemEditor.vue'
 import type { components } from '@/api/schema'
 
 type TodoItemDto = components['schemas']['TodoItemDto']
+type PriorityDto = components['schemas']['PriorityDto']
 
-function mountEditor(item?: TodoItemDto) {
+// Mock API priority options, already in the store's API-provided sort order.
+const priorities: PriorityDto[] = [
+  { id: 1, name: 'High', sortOrder: 1 },
+  { id: 2, name: 'Medium', sortOrder: 2 },
+  { id: 3, name: 'Low', sortOrder: 3 },
+]
+
+function mountEditor(item?: TodoItemDto, priorityOptions?: PriorityDto[]) {
   return mount(ItemEditor, {
-    props: { submitLabel: 'Add to-do', savingLabel: 'Adding…', item },
+    props: { submitLabel: 'Add to-do', savingLabel: 'Adding…', item, priorities: priorityOptions },
   })
 }
 
@@ -137,6 +145,85 @@ describe('ItemEditor', () => {
       'Notes',
     )
     expect((wrapper.find('#item-due-date-i1').element as HTMLInputElement).value).toBe('2026-08-01')
+  })
+
+  // Priority options render straight from the (mocked) API data in the order given -
+  // the component holds no priority list of its own, only the blank default.
+  it('renders the priority options from the API data, blank first, in the given order', () => {
+    const wrapper = mountEditor(undefined, priorities)
+
+    const options = wrapper.findAll('#item-priority-new option')
+    expect(options.map((option) => option.text())).toEqual(['No priority', 'High', 'Medium', 'Low'])
+    expect((wrapper.find('#item-priority-new').element as HTMLSelectElement).value).toBe('')
+  })
+
+  it('shows only the blank option when no priorities are provided', () => {
+    const wrapper = mountEditor()
+
+    const options = wrapper.findAll('#item-priority-new option')
+    expect(options.map((option) => option.text())).toEqual(['No priority'])
+  })
+
+  // Create with blank priority: the payload omits priorityId entirely.
+  it('omits priorityId from the payload when no priority is selected', async () => {
+    const wrapper = mountEditor(undefined, priorities)
+
+    await wrapper.find('#item-title-new').setValue('No priority set')
+    await wrapper.find('form').trigger('submit')
+
+    const payload = lastSavePayload(wrapper)
+    expect(payload).toEqual({ title: 'No priority set' })
+    expect(payload).not.toHaveProperty('priorityId')
+  })
+
+  it('includes the selected priorityId in the payload', async () => {
+    const wrapper = mountEditor(undefined, priorities)
+
+    await wrapper.find('#item-title-new').setValue('Urgent thing')
+    await wrapper.find('#item-priority-new').setValue('1')
+    await wrapper.find('form').trigger('submit')
+
+    expect(lastSavePayload(wrapper)).toEqual({ title: 'Urgent thing', priorityId: 1 })
+  })
+
+  // Edit: the current priority is preserved in the dropdown and can be changed.
+  it('prefills the priority from an existing item and emits the changed value', async () => {
+    const item: TodoItemDto = {
+      id: 'i1',
+      listId: 'l1',
+      title: 'Was medium',
+      priorityId: 2,
+      priorityName: 'Medium',
+    }
+    const wrapper = mountEditor(item, priorities)
+
+    expect((wrapper.find('#item-priority-i1').element as HTMLSelectElement).value).toBe('2')
+
+    await wrapper.find('#item-priority-i1').setValue('3')
+    await wrapper.find('form').trigger('submit')
+
+    expect(lastSavePayload(wrapper)).toEqual({ title: 'Was medium', priorityId: 3 })
+  })
+
+  // Edit: a previously set priority can be cleared back to blank; the payload then
+  // omits priorityId so the full-replace PUT unsets it.
+  it('submits with priorityId omitted after the priority is cleared', async () => {
+    const item: TodoItemDto = {
+      id: 'i1',
+      listId: 'l1',
+      title: 'Had a priority',
+      priorityId: 1,
+      priorityName: 'High',
+    }
+    const wrapper = mountEditor(item, priorities)
+
+    await wrapper.find('#item-priority-i1').setValue('')
+    await wrapper.find('form').trigger('submit')
+
+    const payload = lastSavePayload(wrapper)
+    expect(payload).toEqual({ title: 'Had a priority' })
+    expect(payload).not.toHaveProperty('priorityId')
+    expect(wrapper.find('.text-danger').exists()).toBe(false)
   })
 
   it('shows server field errors passed in from the parent', async () => {

@@ -19,6 +19,7 @@ import ListDetailView from '@/views/ListDetailView.vue'
 
 type TodoListDto = components['schemas']['TodoListDto']
 type TodoItemDto = components['schemas']['TodoItemDto']
+type PriorityDto = components['schemas']['PriorityDto']
 
 const mockGet = api.GET as unknown as ReturnType<typeof vi.fn>
 const mockPost = api.POST as unknown as ReturnType<typeof vi.fn>
@@ -32,17 +33,26 @@ function response(status: number): Response {
 
 const list: TodoListDto = { id: 'list-1', scopeType: 'League', scopeEntityId: 'e1' }
 
+// Mock API priority options, deliberately returned out of order so the dropdown
+// order proves the store applied the API's sortOrder.
+const priorities: PriorityDto[] = [
+  { id: 2, name: 'Medium', sortOrder: 2 },
+  { id: 1, name: 'High', sortOrder: 1 },
+]
+
 /**
- * Serves both GETs the view makes: the get-or-create list lookup and the items fetch.
- * `items` is read on every call, so tests can mutate it to simulate server-side changes
- * picked up by the store's re-fetches.
+ * Serves the GETs the view makes: the get-or-create list lookup, the priority
+ * options, and the items fetch. `items` is read on every call, so tests can mutate
+ * it to simulate server-side changes picked up by the store's re-fetches.
  */
 function serveGets(items: TodoItemDto[]) {
   mockGet.mockImplementation((path: string) =>
     Promise.resolve(
       path === '/api/lists/{scopeTypeName}/{scopeEntityId}'
         ? { data: list, error: undefined, response: response(200) }
-        : { data: [...items], error: undefined, response: response(200) },
+        : path === '/api/priorities'
+          ? { data: [...priorities], error: undefined, response: response(200) }
+          : { data: [...items], error: undefined, response: response(200) },
     ),
   )
 }
@@ -177,6 +187,102 @@ describe('ListDetailView', () => {
     })
     expect(wrapper.text()).toContain('New title')
     expect(wrapper.text()).not.toContain('Old title')
+  })
+
+  // Priority options come from the API via the store and render in the contract's
+  // sortOrder (High before Medium despite the response order), after a blank default.
+  it('loads the priority options and renders them in API sort order', async () => {
+    const wrapper = await mountView([])
+
+    expect(mockGet).toHaveBeenCalledWith('/api/priorities')
+    const options = wrapper.findAll('#item-priority-new option')
+    expect(options.map((option) => option.text())).toEqual(['No priority', 'High', 'Medium'])
+  })
+
+  // Create with a priority selected persists the chosen priorityId.
+  it('creates an item with the selected priority', async () => {
+    const items: TodoItemDto[] = []
+    const wrapper = await mountView(items)
+    const created: TodoItemDto = {
+      id: 'i1',
+      listId: 'list-1',
+      title: 'Urgent to-do',
+      priorityId: 1,
+      priorityName: 'High',
+    }
+    mockPost.mockImplementation(() => {
+      items.push(created)
+      return Promise.resolve({ data: created, error: undefined, response: response(201) })
+    })
+
+    await wrapper.find('#item-title-new').setValue('Urgent to-do')
+    await wrapper.find('#item-priority-new').setValue('1')
+    await wrapper.findAll('form')[0]!.trigger('submit')
+    await flushPromises()
+
+    expect(mockPost).toHaveBeenCalledWith('/api/lists/{listId}/items', {
+      params: { path: { listId: 'list-1' } },
+      body: { title: 'Urgent to-do', priorityId: 1 },
+    })
+    expect(wrapper.find('[data-testid="priority-badge"]').text()).toBe('High')
+  })
+
+  // Editing preserves the current priority and persists a changed one.
+  it('changes an item priority through the inline editor', async () => {
+    const items: TodoItemDto[] = [
+      { id: 'i1', listId: 'list-1', title: 'Reprioritise me', priorityId: 2, priorityName: 'Medium' },
+    ]
+    const wrapper = await mountView(items)
+    const updated: TodoItemDto = {
+      id: 'i1',
+      listId: 'list-1',
+      title: 'Reprioritise me',
+      priorityId: 1,
+      priorityName: 'High',
+    }
+    mockPut.mockImplementation(() => {
+      items.splice(0, items.length, updated)
+      return Promise.resolve({ data: updated, error: undefined, response: response(200) })
+    })
+
+    await wrapper.find('button[aria-label="Edit Reprioritise me"]').trigger('click')
+    const select = wrapper.find('#item-priority-i1')
+    expect((select.element as HTMLSelectElement).value).toBe('2')
+    await select.setValue('1')
+    await wrapper.findAll('form')[1]!.trigger('submit')
+    await flushPromises()
+
+    expect(mockPut).toHaveBeenCalledWith('/api/items/{id}', {
+      params: { path: { id: 'i1' } },
+      body: { title: 'Reprioritise me', priorityId: 1 },
+    })
+    expect(wrapper.find('[data-testid="priority-badge"]').text()).toBe('High')
+  })
+
+  // Clearing a previously set priority persists as unset: the full-replace PUT body
+  // carries no priorityId, and no badge renders afterwards.
+  it('clears an item priority back to blank through the inline editor', async () => {
+    const items: TodoItemDto[] = [
+      { id: 'i1', listId: 'list-1', title: 'Calm down', priorityId: 1, priorityName: 'High' },
+    ]
+    const wrapper = await mountView(items)
+    const updated: TodoItemDto = { id: 'i1', listId: 'list-1', title: 'Calm down' }
+    mockPut.mockImplementation(() => {
+      items.splice(0, items.length, updated)
+      return Promise.resolve({ data: updated, error: undefined, response: response(200) })
+    })
+
+    await wrapper.find('button[aria-label="Edit Calm down"]').trigger('click')
+    await wrapper.find('#item-priority-i1').setValue('')
+    await wrapper.findAll('form')[1]!.trigger('submit')
+    await flushPromises()
+
+    expect(mockPut).toHaveBeenCalledWith('/api/items/{id}', {
+      params: { path: { id: 'i1' } },
+      body: { title: 'Calm down' },
+    })
+    expect(mockPut.mock.calls[0]![1].body).not.toHaveProperty('priorityId')
+    expect(wrapper.find('[data-testid="priority-badge"]').exists()).toBe(false)
   })
 
   it('deletes an item and removes it from the view', async () => {

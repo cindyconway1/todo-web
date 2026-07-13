@@ -33,6 +33,24 @@ describe('ItemRow', () => {
     expect(wrapper.text()).not.toContain('Due')
   })
 
+  // Read-only priority: the badge renders the API-provided name next to the due date.
+  it('renders the priority badge when the item has a priority', () => {
+    const wrapper = mount(ItemRow, {
+      props: { item: { ...item, priorityId: 1, priorityName: 'High' } },
+    })
+
+    const badge = wrapper.find('[data-testid="priority-badge"]')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('High')
+  })
+
+  // Consistent empty state: no priority set means no badge at all.
+  it('renders no priority badge when the item has no priority', () => {
+    const wrapper = mount(ItemRow, { props: { item } })
+
+    expect(wrapper.find('[data-testid="priority-badge"]').exists()).toBe(false)
+  })
+
   // AC 25 - the checkbox is a one-way "complete" affordance.
   it('emits complete when the checkbox is clicked', async () => {
     const wrapper = mount(ItemRow, { props: { item } })

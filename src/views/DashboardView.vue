@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Calendar, HeartHandshake, Inbox, ListTodo, LogOut, Trophy, Users } from '@lucide/vue'
 
+import PriorityBadge from '@/components/PriorityBadge.vue'
 import type { components } from '@/api/schema'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/dashboard'
@@ -195,14 +196,17 @@ async function onLogout(): Promise<void> {
                         {{ item.description }}
                       </p>
                     </div>
-                    <p
-                      v-if="item.dueDate"
-                      class="flex shrink-0 items-center gap-1.5 text-xs text-muted"
-                    >
-                      <Calendar class="size-3.5" aria-hidden="true" />
-                      <!-- dueDate is the contract's date-only YYYY-MM-DD string; shown as-is. -->
-                      <span>Due {{ item.dueDate }}</span>
-                    </p>
+                    <div class="flex shrink-0 flex-col items-end gap-1">
+                      <PriorityBadge v-if="item.priorityName" :name="item.priorityName" />
+                      <p
+                        v-if="item.dueDate"
+                        class="flex items-center gap-1.5 text-xs text-muted"
+                      >
+                        <Calendar class="size-3.5" aria-hidden="true" />
+                        <!-- dueDate is the contract's date-only YYYY-MM-DD string; shown as-is. -->
+                        <span>Due {{ item.dueDate }}</span>
+                      </p>
+                    </div>
                   </li>
                 </ul>
               </div>

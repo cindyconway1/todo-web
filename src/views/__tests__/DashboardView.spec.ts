@@ -59,7 +59,14 @@ const dashboard: DashboardDto = {
           listId: 'list-1',
           listName: 'Sunday Rec',
           items: [
-            { id: 'i1', listId: 'list-1', title: 'Book pitch', dueDate: '2026-07-12' },
+            {
+              id: 'i1',
+              listId: 'list-1',
+              title: 'Book pitch',
+              priorityId: 1,
+              priorityName: 'High',
+              dueDate: '2026-07-12',
+            },
             { id: 'i2', listId: 'list-1', title: 'Order bibs', dueDate: null },
           ],
         },
@@ -120,6 +127,11 @@ describe('DashboardView', () => {
       expect.stringContaining('Order bibs'),
     ])
     expect(leagueItems[0]!.text()).toContain('Due 2026-07-12')
+
+    // Read-only priority: the API-provided name shows on the item; an item without
+    // a priority consistently shows no badge.
+    expect(leagueItems[0]!.find('[data-testid="priority-badge"]').text()).toBe('High')
+    expect(leagueItems[1]!.find('[data-testid="priority-badge"]').exists()).toBe(false)
 
     // An entity whose list has no open items still shows, with a friendly note.
     expect(groups[2]!.text()).toContain('All caught up!')

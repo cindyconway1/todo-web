@@ -43,6 +43,8 @@ const items: AllItemDto[] = [
     scopeType: 'Team',
     scopeName: 'Wildcats',
     title: 'Pump the balls',
+    priorityId: 1,
+    priorityName: 'High',
     dueDate: '2026-07-11',
   },
   {
@@ -101,6 +103,17 @@ describe('AllItemsView', () => {
     expect(rows[0]!.find('[data-testid="due-date"]').text()).toContain('Due 2026-07-11')
     expect(rows[1]!.text()).toContain('Via the council website')
     expect(rows[2]!.find('[data-testid="due-date"]').exists()).toBe(false)
+  })
+
+  // Read-only priority: the API-provided name shows on the row; unset priority
+  // consistently shows no badge.
+  it('shows the priority badge only on items that have a priority', async () => {
+    const wrapper = await mountView(items)
+
+    const rows = wrapper.findAll('[data-testid="all-item"]')
+    expect(rows[0]!.find('[data-testid="priority-badge"]').text()).toBe('High')
+    expect(rows[1]!.find('[data-testid="priority-badge"]').exists()).toBe(false)
+    expect(rows[2]!.find('[data-testid="priority-badge"]').exists()).toBe(false)
   })
 
   // AC 29 - rows are read-only: no check-off, edit, delete, or click-through link.

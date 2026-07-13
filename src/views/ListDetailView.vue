@@ -6,6 +6,7 @@ import ItemEditor from '@/components/ItemEditor.vue'
 import type { ItemEditorPayload, ItemFieldErrors } from '@/components/ItemEditor.vue'
 import ItemRow from '@/components/ItemRow.vue'
 import { EntityError } from '@/stores/entityError'
+import { usePriorityStore } from '@/stores/priority'
 import { useTodoItemStore } from '@/stores/todoItem'
 import { applyEntityError } from '@/utils/entityForm'
 
@@ -15,6 +16,7 @@ const props = defineProps<{
 }>()
 
 const todoItemStore = useTodoItemStore()
+const priorityStore = usePriorityStore()
 
 const listError = ref('')
 
@@ -37,7 +39,12 @@ onMounted(load)
 async function load(): Promise<void> {
   listError.value = ''
   try {
-    const list = await todoItemStore.getListForScope(props.scopeType, props.scopeEntityId)
+    // The priority options feed the editors' dropdowns; they are independent of the
+    // list lookup, so fetch both together.
+    const [list] = await Promise.all([
+      todoItemStore.getListForScope(props.scopeType, props.scopeEntityId),
+      priorityStore.fetchPriorities(),
+    ])
     if (list.id) {
       await todoItemStore.fetchItems(list.id)
     }
@@ -174,6 +181,7 @@ async function onDelete(id: string | undefined): Promise<void> {
           submit-label="Add to-do"
           saving-label="Adding…"
           :saving="creating"
+          :priorities="priorityStore.priorities"
           :server-field-errors="createFieldErrors"
           :form-error="createError"
           @save="onCreate"
@@ -215,6 +223,7 @@ async function onDelete(id: string | undefined): Promise<void> {
               submit-label="Save"
               saving-label="Saving…"
               :saving="saving"
+              :priorities="priorityStore.priorities"
               cancellable
               :server-field-errors="editFieldErrors"
               :form-error="editError"

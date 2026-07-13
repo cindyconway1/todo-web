@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Calendar, Circle, CircleCheck, Pencil, Trash2 } from '@lucide/vue'
 
+import PriorityBadge from '@/components/PriorityBadge.vue'
 import type { components } from '@/api/schema'
 
 type TodoItemDto = components['schemas']['TodoItemDto']
@@ -31,11 +32,17 @@ const emit = defineEmits<{ complete: []; edit: []; delete: [] }>()
     <div class="min-w-0 flex-1 space-y-0.5">
       <p data-testid="item-title" class="font-medium text-default">{{ item.title }}</p>
       <p v-if="item.description" class="text-sm text-muted">{{ item.description }}</p>
-      <p v-if="item.dueDate" class="flex items-center gap-1.5 text-xs text-muted">
-        <Calendar class="size-3.5" aria-hidden="true" />
-        <!-- dueDate is the contract's date-only YYYY-MM-DD string; shown as-is (no Date round-trip). -->
-        <span>Due {{ item.dueDate }}</span>
-      </p>
+      <div
+        v-if="item.priorityName || item.dueDate"
+        class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5"
+      >
+        <PriorityBadge v-if="item.priorityName" :name="item.priorityName" />
+        <p v-if="item.dueDate" class="flex items-center gap-1.5 text-xs text-muted">
+          <Calendar class="size-3.5" aria-hidden="true" />
+          <!-- dueDate is the contract's date-only YYYY-MM-DD string; shown as-is (no Date round-trip). -->
+          <span>Due {{ item.dueDate }}</span>
+        </p>
+      </div>
     </div>
 
     <div class="flex shrink-0 items-center gap-2">

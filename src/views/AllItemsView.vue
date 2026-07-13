@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { ArrowLeft, Calendar, CircleCheckBig, Layers } from '@lucide/vue'
 
+import PriorityBadge from '@/components/PriorityBadge.vue'
 import type { components } from '@/api/schema'
 import { useAllItemsStore } from '@/stores/allItems'
 import { EntityError } from '@/stores/entityError'
@@ -95,15 +96,18 @@ function sourceLabel(item: AllItemDto): string {
               <p v-if="item.description" class="text-sm text-muted">{{ item.description }}</p>
               <p data-testid="source-label" class="text-xs text-muted">{{ sourceLabel(item) }}</p>
             </div>
-            <p
-              v-if="item.dueDate"
-              data-testid="due-date"
-              class="flex shrink-0 items-center gap-1.5 text-xs text-muted"
-            >
-              <Calendar class="size-3.5" aria-hidden="true" />
-              <!-- dueDate is the contract's date-only YYYY-MM-DD string; shown as-is (no Date round-trip). -->
-              <span>Due {{ item.dueDate }}</span>
-            </p>
+            <div class="flex shrink-0 flex-col items-end gap-1.5">
+              <PriorityBadge v-if="item.priorityName" :name="item.priorityName" />
+              <p
+                v-if="item.dueDate"
+                data-testid="due-date"
+                class="flex items-center gap-1.5 text-xs text-muted"
+              >
+                <Calendar class="size-3.5" aria-hidden="true" />
+                <!-- dueDate is the contract's date-only YYYY-MM-DD string; shown as-is (no Date round-trip). -->
+                <span>Due {{ item.dueDate }}</span>
+              </p>
+            </div>
           </div>
         </li>
       </ul>

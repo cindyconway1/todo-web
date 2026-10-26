@@ -25,8 +25,11 @@ CI (`.github/workflows/ci.yml`) runs `lint`, `test:unit`, and `build` on PRs and
 
 - **Typed API client** ([src/api/client.ts](src/api/client.ts)): a single `api` instance from `openapi-fetch`, typed against the `paths` from `src/api/schema.d.ts`, with `baseUrl` from `VITE_API_URL`. Import `{ api }` from `@/api/client` to make backend calls — types (paths, params, bodies, responses) are enforced at compile time.
 - **Generated schema** ([src/api/schema.d.ts](src/api/schema.d.ts)): **auto-generated, never edit by hand.** It is produced by `npm run gen:api`, which reads `../todo-agentic-poc/ToDo.Api.json` (the backend's OpenAPI spec) via `openapi-typescript`. When the backend contract changes, regenerate this file rather than editing types manually.
-- **App composition** ([src/main.ts](src/main.ts)): standard Vue setup wiring Pinia and Vue Router into the root `App.vue`.
-- **Router** ([src/router/index.ts](src/router/index.ts)) and **stores** ([src/stores/](src/stores/)): currently scaffold-only (`routes: []`, a sample `counter` store). Real routes and stores go here.
+- **App composition** ([src/main.ts](src/main.ts)): wires Pinia and Vue Router into the root `App.vue`, registers the 401 handler (`setUnauthorizedHandler` redirects to `/login`), and primes both the auth state and the antiforgery token before mount.
+- **Auth & antiforgery**: session state lives in [src/stores/auth.ts](src/stores/auth.ts); the backend uses HttpOnly cookie sessions, so mutating calls need an antiforgery token, handled by [src/api/xsrf.ts](src/api/xsrf.ts) and [src/composables/useAntiforgery.ts](src/composables/useAntiforgery.ts).
+- **Router** ([src/router/index.ts](src/router/index.ts)): eight named, lazy-loaded routes — `Login`, `Register`, `Dashboard`, `Leagues`, `Teams`, `Volunteers`, `ListDetail`, `AllItems` — plus a `beforeEach` guard that awaits `primeAuth()` and bounces unauthenticated users to `Login` (and authenticated users off the public routes).
+- **Stores** ([src/stores/](src/stores/)): one Pinia store per domain entity — `auth`, `league`, `team`, `volunteer`, `todoItem`, `priority`, `dashboard`, `allItems` — plus the shared [entityError](src/stores/entityError.ts) helper. The Vue template's sample `counter` store is gone; model new stores on the existing ones, not on it.
+- **Views and components**: route-level views in [src/views/](src/views/) (one per route, `View` suffix), reusable pieces in [src/components/](src/components/) (`ItemRow`, `ItemEditor`, `PriorityBadge`, `TagPicker`), shared non-UI helpers in [src/composables/](src/composables/) and [src/utils/](src/utils/).
 
 The `@` import alias maps to `src/` (configured in [vite.config.ts](vite.config.ts) and the tsconfigs).
 
@@ -40,6 +43,27 @@ The `@` import alias maps to `src/` (configured in [vite.config.ts](vite.config.
 - **Line endings**: enforced LF via `.gitattributes` (`* text=auto eol=lf`).
 - **Tests** live in `src/**/__tests__/`, use `@vue/test-utils` `mount`, and run under jsdom.
 - **Mock the API, never hit a live backend in tests.** Stub `api` calls (e.g. mock `@/api/client`) and type the mocked requests/responses against the generated `src/api/schema.d.ts` types — they are the source of truth, so don't hand-write ad-hoc response shapes. Tests must run offline; never call `VITE_API_URL` or a real server.
+
+## Reuse before you add
+
+> **Template note — this section must be carried forward.** `todo-web` is a
+> proof-of-concept template. When these files seed a real repo, copy this section
+> into that repo's CLAUDE.md. It governs any agent writing code, so it applies to
+> a developer's local Claude Code session exactly as it does to a pipeline run —
+> which makes it *more* important, not less, in a repo where most AI-assisted work
+> happens on a dev machine and arrives as a human-opened PR.
+
+- **Look for the existing thing first.** Before adding a store action, composable,
+  util, or component, search for one that already does the job and extend it.
+  Duplicated logic is a defect here even when both copies work.
+- **Match the established shape.** New stores follow the existing stores, new views
+  follow the existing views, new tests follow the existing tests. Consistency beats
+  local cleverness.
+- **Restructuring is proposed, not performed.** If the clean implementation would
+  need a change outside the current scope — splitting a store, extracting a shared
+  composable, moving a util — say so in the PR description and implement within the
+  existing structure. A refactor is its own ticket with its own review. Never bundle
+  one into a feature PR.
 
 ## Design system
 

@@ -5,8 +5,28 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
+      # Guard against show_full_output ever being switched on in a Claude
+      # workflow. That input dumps every Claude message and tool result into the
+      # run log -- file contents, command output, anything a tool touched.
+      # GitHub masks only the secret values it already knows, and Actions logs
+      # on a public repo are world-readable, so a credential that appears
+      # transformed or inside a file the agent read would be published. The
+      # action's own input description warns the output "may contain secrets".
+      # It defaults to false; to debug a run use `display_report: true` (Claude
+      # Code Report in the job Step Summary) or `--debug` in claude_args instead.
+      #
+      # The pattern matches a real YAML key only -- optional indent, then the
+      # key -- so the DO-NOT-ADD comment in claude.yml does not trip it.
+      - name: Forbid show_full_output in Claude workflows
+        run: |
+          if grep -rEn "^[[:space:]]*show_full_output:[[:space:]]*['\"]?(true|yes|on)" .github/workflows/; then
+            echo "::error::show_full_output must stay off: it publishes raw tool output, including anything secret the agent touched, to logs anyone can read. Use display_report: true or --debug instead."
+            exit 1
+          fi
 
       # Set up Node, install deps, fetch the backend's published OpenAPI contract,
       # and regenerate the typed client so the build type-checks against the latest

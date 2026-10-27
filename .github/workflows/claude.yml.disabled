@@ -1,3 +1,7 @@
+# DISABLED 2026-10-27:
+# This workflow allows users to prompt claude code in comments, PRs, etc
+# by adding @claude. This was part of the POC, but not needed at this time.
+# Leaving in in case we need to use it later
 name: Claude Code
 
 on:
@@ -22,11 +26,35 @@ concurrency:
 
 jobs:
   claude:
+    # Two conditions must BOTH hold: the text says @claude, and the person saying
+    # it is trusted. Without the second check anyone who can comment could summon
+    # an agent
+    #
+    # author_association is filled in by GitHub on every comment/issue/review and
+    # lives at a different path per event type, so the check is repeated per branch
+    # rather than appended once.
+    #
+    # COLLABORATOR is included because this repo grants access directly rather than
+    # through an org. Once this moves to an org, drop COLLABORATOR to limit @claude
+    # to staff (OWNER/MEMBER) and keep outside collaborators from triggering it.
     if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      (
+        github.event_name == 'issue_comment'
+        && contains(github.event.comment.body, '@claude')
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+      ) || (
+        github.event_name == 'pull_request_review_comment'
+        && contains(github.event.comment.body, '@claude')
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+      ) || (
+        github.event_name == 'pull_request_review'
+        && contains(github.event.review.body, '@claude')
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.review.author_association)
+      ) || (
+        github.event_name == 'issues'
+        && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))
+        && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
+      )
     runs-on: ubuntu-latest
 
     # Timeout for the entire GitHub job (the Claude step has its own, below).
@@ -40,7 +68,7 @@ jobs:
       actions: read # Required for Claude to read CI results on PRs
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
 
@@ -55,7 +83,7 @@ jobs:
       # silently hand-author against a stale or incomplete contract.
       - name: Report contract-fetch failure on the issue
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const issue_number = context.issue.number;
@@ -80,7 +108,7 @@ jobs:
         id: claude
         # timeout for this github step
         timeout-minutes: 30
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@d70510b174a1244958df0b03166a54912811f3e6 # v1, as of 2026-10-27
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
@@ -107,7 +135,7 @@ jobs:
           # https://code.claude.com/docs/en/github-actions (see "Manage costs")
           claude_args: |
             --max-turns 40
-            --allowedTools "Bash(npm:*),Bash(npx:*),Bash(git fetch:*),Bash(git reset:*),Bash(git rebase:*)"
-            --disallowedTools "Bash(git pull:*),Bash(git merge:*)"
+            --allowedTools "Bash(npm ci),Bash(npm run lint),Bash(npm run test:unit),Bash(npm run type-check),Bash(npm run build),Bash(git fetch:*),Bash(git reset:*),Bash(git rebase:*)"
+            --disallowedTools "Bash(git pull:*),Bash(npx:*),Bash(git merge:*)"
             --append-system-prompt "When a push is rejected because your branch has diverged from its remote (e.g. another @claude run pushed in the meantime), reconcile explicitly — never with `git pull` or `git merge`. Run `git fetch origin`, then `git rebase origin/<current-branch>` to replay your commits on top of the latest remote (resolve conflicts, then `git rebase --continue`). Use `git reset --hard origin/<current-branch>` only when you deliberately intend to discard local commits and let the remote win. Substitute the branch you are working on for <current-branch>."
 

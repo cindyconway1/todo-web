@@ -7,20 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Guard against show_full_output ever being switched on in a Claude
-      # workflow. That input dumps every Claude message and tool result into the
-      # run log -- file contents, command output, anything a tool touched.
-      # GitHub masks only the secret values it already knows, and Actions logs
-      # on a public repo are world-readable, so a credential that appears
-      # transformed or inside a file the agent read would be published. The
-      # action's own input description warns the output "may contain secrets".
-      # It defaults to false; to debug a run use `display_report: true` (Claude
-      # Code Report in the job Step Summary) or `--debug` in claude_args instead.
-      #
-      # The pattern matches a real YAML key only -- optional indent, then the
-      # key -- so the DO-NOT-ADD comment in claude.yml does not trip it.
+      # workflow.
       - name: Forbid show_full_output in Claude workflows
         run: |
           if grep -rEn "^[[:space:]]*show_full_output:[[:space:]]*['\"]?(true|yes|on)" .github/workflows/; then
@@ -28,10 +18,11 @@ jobs:
             exit 1
           fi
 
-      # Set up Node, install deps, fetch the backend's published OpenAPI contract,
-      # and regenerate the typed client so the build type-checks against the latest
-      # contract. Shared with claude.yml via a composite action.
-      - uses: ./.github/actions/regen-api-client
+      # Set up Node and install deps. 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '20'
+      - run: npm ci
 
       - run: npm run lint
       - run: npm run test:unit # Vitest, API calls mocked

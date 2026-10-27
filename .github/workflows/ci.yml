@@ -5,13 +5,24 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Set up Node, install deps, fetch the backend's published OpenAPI contract,
-      # and regenerate the typed client so the build type-checks against the latest
-      # contract. Shared with claude.yml via a composite action.
-      - uses: ./.github/actions/regen-api-client
+      # Guard against show_full_output ever being switched on in a Claude
+      # workflow.
+      - name: Forbid show_full_output in Claude workflows
+        run: |
+          if grep -rEn "^[[:space:]]*show_full_output:[[:space:]]*['\"]?(true|yes|on)" .github/workflows/; then
+            echo "::error::show_full_output must stay off: it publishes raw tool output, including anything secret the agent touched, to logs anyone can read. Use display_report: true or --debug instead."
+            exit 1
+          fi
+
+      # Set up Node and install deps. 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '20'
+      - run: npm ci
 
       - run: npm run lint
       - run: npm run test:unit # Vitest, API calls mocked

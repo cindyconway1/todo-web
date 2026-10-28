@@ -14,6 +14,13 @@ dist-ssr
 coverage
 *.local
 
+# Env files. Vite compiles every VITE_-prefixed value into the shipped bundle,
+# so anything in them is public to every visitor -- never put a secret here.
+# .env.development is committed on purpose: it holds only the local backend URL.
+.env
+.env.*
+!.env.development
+
 # Self-signed HTTPS dev cert (see scripts/ensure-dev-cert.mjs)
 .certs/
 

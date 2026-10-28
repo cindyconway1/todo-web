@@ -2,13 +2,28 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, ready_for_review, reopened]
+    # synchronize (every push to an open PR) is required, not optional, because
+    # claude-review is a REQUIRED status check and the ruleset has
+    # strict_required_status_checks_policy on. Without it, any push -- including
+    # the branch update that strict mode forces after every merge to main --
+    # leaves the new head SHA with no review run, and the required check sits on
+    # "Waiting for status to be reported" until someone toggles the PR to draft
+    # and back. Drop synchronize only if claude-review stops being required.
+    types: [opened, ready_for_review, reopened, synchronize]
     # Optional: Only run on specific file changes
     # paths:
     #   - "src/**/*.ts"
     #   - "src/**/*.tsx"
     #   - "src/**/*.js"
     #   - "src/**/*.jsx"
+
+# With synchronize on, three pushes in a minute would start three reviews and bill
+# for all three. Only the newest head matters -- the required check is evaluated
+# against it -- so supersede in-flight runs for the same PR. The cancelled run
+# belongs to an older SHA, so cancelling it cannot strand the check on the new one.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   claude-review:

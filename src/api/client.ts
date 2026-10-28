@@ -20,9 +20,24 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): voi
 }
 
 // Antiforgery tokens are bound to the current auth identity: a token minted while anonymous
-// becomes invalid once logged in (and vice versa). A 400 on a mutation signals that mismatch,
-// not a validation error - re-fetch the token and retry the same request exactly once.
+// becomes invalid once logged in (and vice versa). A 400 on a mutation can signal that mismatch
+// - re-fetch the token and retry the same request exactly once.
 const pendingRequestClones = new WeakMap<Request, Request>()
+
+// ...but only a *bodiless* 400 signals it. Every 400 the API itself returns carries a
+// ProblemDetails payload (see the 400 responses in schema.d.ts), because it comes from the
+// controller. An antiforgery rejection never reaches the controller - the middleware
+// short-circuits the pipeline and returns an empty 400. Replaying a ProblemDetails 400 would
+// re-send a request the server already rejected on its merits, which double-submits the
+// mutation: a second POST /api/todoitems creates a second item.
+async function hasEmptyBody(response: Response): Promise<boolean> {
+  try {
+    return (await response.clone().text()).length === 0
+  } catch {
+    // An unreadable body is not a confirmed antiforgery rejection; don't replay.
+    return false
+  }
+}
 
 // Same-origin baseUrl so requests resolve through the Vite dev proxy (see vite.config.ts)
 // instead of cross-origin to VITE_API_URL - cross-origin calls make the browser drop the auth
@@ -49,7 +64,8 @@ api.use({
   async onResponse({ request, response }) {
     if (isMutating(request.method) && response.status === 400) {
       const clone = pendingRequestClones.get(request)
-      if (clone) {
+      if (clone && (await hasEmptyBody(response))) {
+        pendingRequestClones.delete(request)
         await api.GET('/api/auth/antiforgery')
         const retryHeaders = new Headers(clone.headers)
         const token = readXsrfCookie()

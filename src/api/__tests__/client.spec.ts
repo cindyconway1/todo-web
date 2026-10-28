@@ -44,7 +44,7 @@ describe('api client', () => {
     expect(sentRequest.headers.get('X-XSRF-TOKEN')).toBeNull()
   })
 
-  it('re-fetches the antiforgery token and retries exactly once on a 400', async () => {
+  it('re-fetches the antiforgery token and retries exactly once on a bodiless 400', async () => {
     setXsrfCookie('stale-token')
     let nonAntiforgeryCalls = 0
 
@@ -67,6 +67,28 @@ describe('api client', () => {
     expect(result.response.status).toBe(204)
     const retryRequest = fetchMock.mock.calls[2]?.[0] as Request
     expect(retryRequest.headers.get('X-XSRF-TOKEN')).toBe('fresh-token')
+  })
+
+  it('does not retry a validation 400 that carries a ProblemDetails body', async () => {
+    setXsrfCookie('valid-token')
+    const problemDetails = JSON.stringify({
+      title: 'One or more validation errors occurred.',
+      status: 400,
+      errors: { Title: ['The Title field is required.'] },
+    })
+    fetchMock.mockResolvedValue(
+      new Response(problemDetails, {
+        status: 400,
+        headers: { 'Content-Type': 'application/problem+json' },
+      }),
+    )
+
+    const result = await api.POST('/api/auth/logout')
+
+    // The server rejected the request on its merits. Replaying it would submit
+    // the mutation twice, so the original request must be the only call made.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(result.response.status).toBe(400)
   })
 
   it('triggers the unauthorized handler on a 401 from a protected endpoint', async () => {

@@ -54,6 +54,18 @@ jobs:
         # timeout for this github step
         timeout-minutes: 20
         uses: anthropics/claude-code-action@d70510b174a1244958df0b03166a54912811f3e6 # v1, as of 2026-10-27
+        # Subagents must run in the FOREGROUND here. Since Claude Code 2.1.302 a
+        # subagent starts in the background by default, and the action stops
+        # reading the session at the first result message (claude-code-action
+        # base-action/src/run-claude-sdk.ts, the `break` on "result"). The
+        # code-review plugin's very first step is a haiku subagent, so without
+        # this the main agent says "I'll continue the review once it reports
+        # back", the turn ends, the action exits, and no review happens (run
+        # 41463022817: 12s, $0.06, no comment). Reproduced locally on the same
+        # CLI + SDK versions; with this set the full multi-agent review runs
+        # to completion (~80s, ~$0.9 on a two-file diff).
+        env:
+          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: '1'
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
@@ -92,8 +104,20 @@ jobs:
           # Anthropic's OIDC exchange, NOT on the job's GITHUB_TOKEN, so the
           # `permissions:` block above does not bound what gh can do here. This
           # allowlist is what keeps the agent to reads plus PR comments.
+          #
+          # --setting-sources user: do not load this repo's .claude/settings.json
+          # into the reviewer. That file puts `gh pr comment` (and gh api, gh pr
+          # review, ...) under `ask` so a developer's local Claude session cannot
+          # post as them. An ask rule beats an allow rule from anywhere, including
+          # --allowedTools (deny > ask > allow), and in a headless run an ask is a
+          # denial -- so with project settings loaded the plugin's summary comment
+          # (`gh pr comment`) is silently refused. The action restores .claude/
+          # from main before Claude starts, so a pre-step edit cannot fix this;
+          # excluding the source does. The plugin is installed at user scope, so
+          # it still loads; the reviewers read CLAUDE.md files explicitly.
           claude_args: |
             --max-turns 20
+            --setting-sources user
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr list:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*),Bash(git diff:*),Bash(git log:*),Bash(git blame:*),Bash(git show:*)"
           # See https://github.com/anthropics/claude-code.git action docs:
           # https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md

@@ -67,17 +67,33 @@ jobs:
           #   --max-turns -- Claude usage, which is billed per token, but 
           #       turns are the CLI option provided
           # https://code.claude.com/docs/en/github-actions (see "Manage costs")
-          # Deliberately no --allowedTools. That flag REPLACES the allowlist rather
-          # than extending it, and the reviewer needs open-ended shell access to do
-          # its job: it reads the diff via git/gh, greps with awk and ls, and calls
-          # `git worktree add` to isolate the checkout. Pinning it to a fixed command
-          # list got those calls denied, so the reviewer saw nothing and posted
-          # nothing -- while the job still reported success.
+          # --allowedTools REPLACES the default allowlist; agent mode builds it from
+          # nothing but this list (claude-code-action src/modes/agent/parse-tools.ts).
+          # Three things have to be on it, each verified against a run that failed
+          # without it:
           #
-          # The security boundary is the job's `permissions:` block above
-          # (contents: read, pull-requests: read), not this list. The agent holds a
-          # read-only token either way and cannot write to the repo.
+          #   mcp__github_inline_comment__create_inline_comment
+          #       The action only installs the inline-comment MCP server when this
+          #       name is present (src/mcp/install-mcp-server.ts). Leave it out and
+          #       inline comments are impossible even when the reviewer finds issues.
+          #   Bash(gh pr ...), Bash(gh issue ...), Bash(gh search:*)
+          #       The code-review plugin's own declared tool list (its command file's
+          #       `allowed-tools` frontmatter). gh pr view/diff read the PR; gh pr
+          #       comment posts the "No issues found" summary on a clean PR -- that
+          #       summary is a PR comment, not an inline one.
+          #   Bash(git diff/log/blame/show:*)
+          #       Read-only history for the plugin's git-blame review agent.
+          #
+          # Anything else the reviewer tries (exploratory greps, cd into sibling
+          # repos) is denied and the review still completes; the plugin tells its
+          # agents not to make exploratory calls. Do not widen this to bare `Bash`.
+          #
+          # Note the token: inside this step `gh` runs on the app token minted by
+          # Anthropic's OIDC exchange, NOT on the job's GITHUB_TOKEN, so the
+          # `permissions:` block above does not bound what gh can do here. This
+          # allowlist is what keeps the agent to reads plus PR comments.
           claude_args: |
             --max-turns 20
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr list:*),Bash(gh pr comment:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*),Bash(git diff:*),Bash(git log:*),Bash(git blame:*),Bash(git show:*)"
           # See https://github.com/anthropics/claude-code.git action docs:
           # https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
